@@ -1,0 +1,56 @@
+﻿[
+  {
+    "source_url": "https://www.youtube.com/watch?v=aircAruvnKk",
+    "source_type": "youtube",
+    "title": "But what is a neural network? | Deep learning chapter 1",
+    "description": "What are the neurons, why are there layers, and what is the math underlying it?Help fund future projects: https://www.patreon.com/3blue1brownWritten/interact...",
+    "author": "3Blue1Brown",
+    "published_date": "2017-10-05",
+    "language": "en",
+    "region": "Europe",
+    "topic_tags": [
+      "AI"
+    ],
+    "trust_score": 0.31,
+    "trust_label": "Unreliable",
+    "content_chunks": [
+      "What are the neurons, why are there layers, and what is the math underlying it?Help fund future projects: https://www.patreon.com/3blue1brownWritten/interact..."
+    ],
+    "trust_breakdown": {
+      "author_credibility": 0.55,
+      "citation_score": 0.0,
+      "domain_authority": 0.65,
+      "recency_score": 0.3,
+      "medical_disclaimer": 0.5
+    }
+  },
+  {
+    "source_url": "https://www.youtube.com/watch?v=rfscVS0vtbw",
+    "source_type": "youtube",
+    "title": "Learn Python - Full Course for Beginners [Tutorial]",
+    "description": "This course will give you a full introduction into all of the core concepts in python. Follow along with the videos and you'll be a python programmer in no t...",
+    "author": "freeCodeCamp.org",
+    "published_date": "2018-07-11",
+    "language": "en",
+    "region": "Europe",
+    "topic_tags": [
+      "Learn",
+      "Python",
+      "Full",
+      "Course",
+      "Beginners"
+    ],
+    "trust_score": 0.31,
+    "trust_label": "Unreliable",
+    "content_chunks": [
+      "This course will give you a full introduction into all of the core concepts in python. Follow along with the videos and you'll be a python programmer in no t..."
+    ],
+    "trust_breakdown": {
+      "author_credibility": 0.55,
+      "citation_score": 0.0,
+      "domain_authority": 0.65,
+      "recency_score": 0.3,
+      "medical_disclaimer": 0.5
+    }
+  }
+]

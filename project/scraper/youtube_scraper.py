@@ -15,6 +15,8 @@ import json
 import re
 import sys
 import time
+import html as html_lib
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -37,6 +39,12 @@ try:
     YT_API_AVAILABLE = True
 except ImportError:
     YT_API_AVAILABLE = False
+
+try:
+    import yt_dlp
+    YTDLP_AVAILABLE = True
+except ImportError:
+    YTDLP_AVAILABLE = False
 
 sys.path.insert(0, '..')
 from utils.chunking import chunk_transcript, smart_chunk
@@ -120,6 +128,183 @@ def _normalize_date(raw_value: str) -> str:
         return f"{int(year_match.group()):04d}-01-01"
 
     return "Unknown"
+
+
+def _parse_timestamp_to_seconds(raw_value: str) -> float:
+    value = str(raw_value).strip().replace(",", ".")
+    if value.endswith("s") and value[:-1].replace(".", "", 1).isdigit():
+        return float(value[:-1])
+    if value.endswith("ms") and value[:-2].isdigit():
+        return float(value[:-2]) / 1000.0
+
+    parts = value.split(":")
+    try:
+        if len(parts) == 3:
+            h, m, s = parts
+            return int(h) * 3600 + int(m) * 60 + float(s)
+        if len(parts) == 2:
+            m, s = parts
+            return int(m) * 60 + float(s)
+        return float(value)
+    except ValueError:
+        return 0.0
+
+
+def _clean_caption_text(text: str) -> str:
+    cleaned = re.sub(r"<[^>]+>", "", text or "")
+    cleaned = html_lib.unescape(cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
+def _entries_to_text(entries: list[dict]) -> str:
+    return " ".join(e.get("text", "") for e in entries if e.get("text"))
+
+
+def _parse_vtt_subtitles(content: str) -> tuple[list[dict], str]:
+    entries = []
+    blocks = re.split(r"\n\s*\n", content.strip())
+
+    for block in blocks:
+        lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
+        if not lines:
+            continue
+        if re.fullmatch(r"\d+", lines[0]):
+            lines = lines[1:]
+        if not lines or "-->" not in lines[0]:
+            continue
+
+        ts_line = lines[0]
+        cue_text = _clean_caption_text(" ".join(lines[1:]))
+        if not cue_text:
+            continue
+
+        try:
+            start_raw, end_raw = [p.strip() for p in ts_line.split("-->", 1)]
+            start = _parse_timestamp_to_seconds(start_raw.split(" ")[0])
+            end = _parse_timestamp_to_seconds(end_raw.split(" ")[0])
+            duration = max(0.0, end - start)
+        except Exception:
+            start, duration = 0.0, 0.0
+
+        entries.append({"text": cue_text, "start": start, "duration": duration})
+
+    return entries, _entries_to_text(entries)
+
+
+def _parse_json3_subtitles(content: str) -> tuple[list[dict], str]:
+    entries = []
+    data = json.loads(content)
+
+    for event in data.get("events", []):
+        segs = event.get("segs") or []
+        if not segs:
+            continue
+        text = _clean_caption_text("".join(seg.get("utf8", "") for seg in segs))
+        if not text:
+            continue
+
+        start = float(event.get("tStartMs", 0)) / 1000.0
+        duration = float(event.get("dDurationMs", 0)) / 1000.0
+        entries.append({"text": text, "start": start, "duration": duration})
+
+    return entries, _entries_to_text(entries)
+
+
+def _parse_xml_subtitles(content: str) -> tuple[list[dict], str]:
+    entries = []
+    root = ET.fromstring(content)
+
+    for elem in root.iter():
+        tag = elem.tag.lower()
+        if not (tag.endswith("text") or tag.endswith("p")):
+            continue
+
+        text = _clean_caption_text("".join(elem.itertext()))
+        if not text:
+            continue
+
+        start_raw = elem.attrib.get("start") or elem.attrib.get("begin") or "0"
+        dur_raw = elem.attrib.get("dur") or "0"
+        end_raw = elem.attrib.get("end")
+
+        start = _parse_timestamp_to_seconds(start_raw)
+        duration = _parse_timestamp_to_seconds(dur_raw)
+        if duration <= 0 and end_raw:
+            end = _parse_timestamp_to_seconds(end_raw)
+            duration = max(0.0, end - start)
+
+        entries.append({"text": text, "start": start, "duration": duration})
+
+    return entries, _entries_to_text(entries)
+
+
+def _fetch_subtitle_content(subtitle_url: str) -> str:
+    try:
+        resp = requests.get(subtitle_url, headers=HEADERS, timeout=20)
+        if resp.status_code >= 400:
+            return ""
+        return resp.text
+    except Exception:
+        return ""
+
+
+def _extract_transcript_with_ytdlp(video_url: str) -> tuple[list[dict], str]:
+    if not YTDLP_AVAILABLE or not video_url:
+        return [], ""
+
+    try:
+        opts = {
+            "quiet": True,
+            "no_warnings": True,
+            "skip_download": True,
+            "noplaylist": True,
+        }
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(video_url, download=False)
+    except Exception:
+        return [], ""
+
+    subtitle_candidates = []
+    ext_priority = {"json3": 0, "vtt": 1, "ttml": 2, "srv3": 3, "srv2": 4, "srv1": 5}
+
+    for source_key in ("subtitles", "automatic_captions"):
+        source = info.get(source_key) or {}
+        if not isinstance(source, dict):
+            continue
+
+        langs = sorted(source.keys(), key=lambda lang: (0 if str(lang).lower().startswith("en") else 1, str(lang)))
+        for lang in langs:
+            fmts = source.get(lang) or []
+            if not isinstance(fmts, list):
+                continue
+            for fmt in sorted(fmts, key=lambda f: ext_priority.get((f.get("ext") or "").lower(), 99)):
+                sub_url = fmt.get("url")
+                if not sub_url:
+                    continue
+                subtitle_candidates.append(((fmt.get("ext") or "").lower(), sub_url))
+
+    for ext, sub_url in subtitle_candidates:
+        content = _fetch_subtitle_content(sub_url)
+        if not content:
+            continue
+
+        try:
+            if ext == "json3" or content.lstrip().startswith("{"):
+                entries, text = _parse_json3_subtitles(content)
+            elif "WEBVTT" in content[:100]:
+                entries, text = _parse_vtt_subtitles(content)
+            elif content.lstrip().startswith("<"):
+                entries, text = _parse_xml_subtitles(content)
+            else:
+                entries, text = _parse_vtt_subtitles(content)
+        except Exception:
+            continue
+
+        if len(text) >= 120:
+            return entries, text
+
+    return [], ""
 
 
 def _extract_video_id(url: str) -> str:
@@ -225,22 +410,27 @@ def _scrape_yt_metadata_bs(url: str) -> dict:
     return meta
 
 
-def _get_transcript(video_id: str) -> tuple[list[dict], str]:
+def _get_transcript(video_id: str, video_url: str = "") -> tuple[list[dict], str]:
     """
     Returns (transcript_entries, full_text).
-    Falls back to empty if transcript unavailable.
+    Falls back to yt-dlp subtitle extraction, then empty if unavailable.
     """
-    if not YT_API_AVAILABLE or not video_id:
-        return [], ""
+    if YT_API_AVAILABLE and video_id:
+        try:
+            entries = YouTubeTranscriptApi.get_transcript(video_id)
+            full_text = " ".join(e["text"] for e in entries)
+            if full_text.strip():
+                return entries, full_text
+        except (TranscriptsDisabled, NoTranscriptFound):
+            pass
+        except Exception:
+            pass
 
-    try:
-        entries = YouTubeTranscriptApi.get_transcript(video_id)
-        full_text = " ".join(e["text"] for e in entries)
+    entries, full_text = _extract_transcript_with_ytdlp(video_url)
+    if full_text.strip():
         return entries, full_text
-    except (TranscriptsDisabled, NoTranscriptFound):
-        return [], ""
-    except Exception:
-        return [], ""
+
+    return [], ""
 
 
 def scrape_video(url: str) -> dict:
@@ -275,7 +465,7 @@ def scrape_video(url: str) -> dict:
         record["description"]    = description
 
         # Transcript
-        entries, transcript_text = _get_transcript(video_id)
+        entries, transcript_text = _get_transcript(video_id, url)
 
         full_content = f"{title} {description} {transcript_text}"
 

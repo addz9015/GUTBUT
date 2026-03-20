@@ -36,6 +36,7 @@ project/
 | `beautifulsoup4` + `lxml`| HTML parsing and metadata extraction        |
 | `newspaper3k`            | High-level article extraction for blogs     |
 | `youtube-transcript-api` | YouTube transcript retrieval                |
+| `yt-dlp`                 | Fallback subtitle retrieval for YouTube     |
 | `langdetect`             | Automatic language detection                |
 | `rake-nltk`              | RAKE keyword extraction for topic tagging   |
 | Python stdlib (`re`, `xml.etree.ElementTree`) | Regex and XML parsing |
@@ -55,7 +56,7 @@ source venv/bin/activate   # Windows: venv\Scripts\activate
 
 # 3. Install dependencies
 pip install requests beautifulsoup4 lxml newspaper3k \
-            youtube-transcript-api langdetect rake-nltk
+            youtube-transcript-api yt-dlp langdetect rake-nltk
 ```
 
 ---
@@ -124,9 +125,12 @@ Falls back to `BeautifulSoup` parsing of `<meta>`, `<article>`, and `<main>` tag
 newspaper3k fails or returns insufficient content.
 
 ### YouTube
-Uses `youtube-transcript-api` for transcripts. Metadata (channel name, publish date,
-description) is extracted via `BeautifulSoup` parsing of YouTube's `application/ld+json`
-script blocks, which provide structured JSON-LD data.
+Uses `youtube-transcript-api` for transcripts. If transcript API retrieval fails,
+the scraper falls back to `yt-dlp` subtitle endpoints (manual or auto captions)
+and parses subtitle formats like `json3` / `vtt` / XML.
+Metadata (channel name, publish date, description) is extracted via `BeautifulSoup`
+parsing of YouTube's `application/ld+json` script blocks, which provide
+structured JSON-LD data.
 
 ### PubMed
 Uses the NCBI E-utilities REST API (no API key required for low volume):
