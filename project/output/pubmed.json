@@ -1,0 +1,46 @@
+[
+  {
+    "source_url": "https://pubmed.ncbi.nlm.nih.gov/33278961/",
+    "source_type": "pubmed",
+    "title": "A mechanistic model to study the effect of the cell wall on starch digestion in intact cotyledon cells.",
+    "description": "The role of the plant matrix is recognized as the main factor restricting starch digestibility in beans. Several authors have provided insights about the mechanisms behind the reduced starch digestibility in plant matrices. In this study, by means of a mathematical model, we prov",
+    "abstract": "The role of the plant matrix is recognized as the main factor restricting starch digestibility in beans. Several authors have provided insights about the mechanisms behind the reduced starch digestibility in plant matrices. In this study, by means of a mathematical model, we provide a mechanistic explanation of the role played by the cell wall. It was confirmed that starch entrapped within intact cells could only be hydrolysed after α-amylase diffusion through the cell wall. This process is limited by the pores naturally present in the cell wall and the adsorption of α-amylase to the cell wall surface. These factors restrict the concentration of α-amylase available within the cells. The model assumptions are valid under controlled laboratory conditions and were validated with in-vitro digestion data giving very accurate results. The proposed approach provides new information to understand the digestibility of starch, and possibly other macronutrients, in complex food matrices.",
+    "author": "Rovalino-Córdova Ana M; Aguirre Montesdeoca Victor; Capuano Edoardo",
+    "published_date": "2021-02-01",
+    "language": "en",
+    "region": "Europe",
+    "topic_tags": [
+      "Gastric Mucosa",
+      "Phaseolus",
+      "α-amylase",
+      "Cell Wall",
+      "Models, Theoretical",
+      "Swine",
+      "Starch digestion",
+      "Kinetics",
+      "Adsorption",
+      "Digestion",
+      "Starch",
+      "Cell wall",
+      "Hydrolysis",
+      "Pancreas",
+      "Animals"
+    ],
+    "trust_score": 0.63,
+    "trust_label": "Moderate Trust",
+    "content_chunks": [
+      "The role of the plant matrix is recognized as the main factor restricting starch digestibility in beans. Several authors have provided insights about the mechanisms behind the reduced starch digestibility in plant matrices. In this study, by means of a mathematical model, we provide a mechanistic explanation of the role played by the cell wall. It was confirmed that starch entrapped within intact cells could only be hydrolysed after α-amylase diffusion through the cell wall. This process is limited by the pores naturally present in the cell wall and the adsorption of α-amylase to the cell wall surface.",
+      "These factors restrict the concentration of α-amylase available within the cells. The model assumptions are valid under controlled laboratory conditions and were validated with in-vitro digestion data giving very accurate results. The proposed approach provides new information to understand the digestibility of starch, and possibly other macronutrients, in complex food matrices."
+    ],
+    "journal": "Carbohydrate polymers",
+    "pmid": "33278961",
+    "trust_breakdown": {
+      "author_credibility": 0.8,
+      "citation_score": 0.233,
+      "domain_authority": 0.9,
+      "recency_score": 0.3,
+      "medical_disclaimer": 1.0
+    },
+    "citation_count": 4
+  }
+]
